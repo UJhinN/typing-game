@@ -1,4 +1,6 @@
 import kivy
+import nltk
+import random
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import ObjectProperty
@@ -8,7 +10,32 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
-import random
+from nltk.corpus import words
+
+nltk.download('words')
+
+#----------------- GAME VARIABLE -----------------#
+letters = [chr(i) for i in range(97, 123)]
+length_select = [True, False, False, False, False, False, False]
+word_objects = []
+len_indexes = []
+list_ofword = []
+active_string = ""
+submit = ""
+txt_color, txt_color_2 = "", ""
+total_type = 0
+lives = 4
+level = 0
+scroll_offset = 0
+item_height = 40
+visible_items = 15
+length = 1
+paused = True
+new_lvl = True
+music_paused = False
+cheat = False
+active = False
+active_2 = False
 
 class FallingInputBox(TextInput):
     def fall(self, speed=1):
@@ -19,8 +46,15 @@ class TypingGame(BoxLayout):
     word_label = ObjectProperty(None)
     score_label = ObjectProperty(None)
     target_word = ""
-    fruits = ["apple", "banana", "orange", "grape", "watermelon"]
-    score = 0
+    wordlist = words.words()
+    score = 0  # เพิ่มแอตทริบิวต์ score
+
+    wordlist.sort(key=len)
+    for i in range(len(wordlist)):
+        if len(wordlist[i]) > length:
+            length += 1
+            len_indexes.append(i)
+    len_indexes.append(len(wordlist))
 
     def __init__(self, **kwargs):
         super(TypingGame, self).__init__(**kwargs)
@@ -112,7 +146,7 @@ class TypingGame(BoxLayout):
         self.__init__()
 
     def choose_target_word(self):
-        self.target_word = random.choice(self.fruits)
+        self.target_word = random.choice(self.wordlist)
         self.word_label.text = self.target_word
 
 class TypingGameApp(App):
@@ -151,4 +185,3 @@ class StartPage(Screen):
 
 if __name__ == "__main__":
     TypingGameApp().run()
-

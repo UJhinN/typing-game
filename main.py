@@ -137,8 +137,8 @@ class StartPage(Screen):
         super(StartPage, self).__init__(**kwargs)
         self.app = app
 
-        start_button = Button(text="Start", on_press=self.start_game, size_hint=(None, None), size=(100, 50), background_color=(0, 1, 0, 1))
-        start_button.pos = (Window.width / 2 - start_button.width / 2, Window.height / 2 - start_button.height / 2)
+        start_button = Button(text="Start", on_press=self.start_game, size_hint=(None, None), size=(200, 100), background_color=(0, 1, 0, 1))
+        start_button.pos = (Window.width / 2 - start_button.width / 2, Window.height / 2 - start_button.height / 4)
 
         self.add_widget(start_button)
         self.children.append(start_button)

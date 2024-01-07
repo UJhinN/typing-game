@@ -81,8 +81,25 @@ class TypingGame(BoxLayout):
         self.time_label = Label(text=f"Time left: {self.time_left}", pos=(Window.width - 150, Window.height - 30))
         self.add_widget(self.time_label)
 
+    def upgrade_level(self):
+        global level, scroll_offset, item_height, visible_items, length, paused, new_lvl, music_paused, cheat, active, active_2
+
+        if self.score >= (level + 1) * 30:
+            level += 1
+            scroll_offset += 1
+            item_height += 5
+            visible_items += 2
+            length += 1
+            paused = True
+            new_lvl = True
+            music_paused = False
+            cheat = False
+            active = False
+            active_2 = False
+            self.falling_input_box.fall(speed=0.25 + level * 0.25)  # เพิ่มความเร็วของ TextInput
+
     def update(self, dt):
-        self.falling_input_box.fall(speed=0.25)
+        self.falling_input_box.fall(speed=0.25 + level * 0.25)  # เพิ่มความเร็วของ TextInput
 
         if self.check_game_over():
             self.game_over()
@@ -92,6 +109,8 @@ class TypingGame(BoxLayout):
 
         if self.time_left <= 0:
             self.game_over()
+
+        self.upgrade_level()  # เรียกเมทอดอัปเกรดเลเวล
 
     def handle_collision(self, instance, value):
         typed_word = value

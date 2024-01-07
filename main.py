@@ -38,7 +38,7 @@ active = False
 active_2 = False
 
 class FallingInputBox(TextInput):
-    def fall(self, speed=1):
+    def fall(self, speed=0.005):
         self.y -= speed
 
 class TypingGame(BoxLayout):
@@ -77,12 +77,12 @@ class TypingGame(BoxLayout):
         self.choose_target_word()
 
         self.falling_input_box.bind(text=self.handle_collision)
-        self.time_left = 30
+        self.time_left = 300
         self.time_label = Label(text=f"Time left: {self.time_left}", pos=(Window.width - 150, Window.height - 30))
         self.add_widget(self.time_label)
 
     def update(self, dt):
-        self.falling_input_box.fall(speed=1)
+        self.falling_input_box.fall(speed=0.25)
 
         if self.check_game_over():
             self.game_over()
@@ -105,7 +105,7 @@ class TypingGame(BoxLayout):
             self.falling_input_box.text = ""
             self.choose_target_word()
 
-            if self.score >= 100:
+            if self.score >= 9999:
                 self.win()
         elif not correct:
             self.score = max(0, self.score - self.score // 2)

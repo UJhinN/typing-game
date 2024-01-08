@@ -45,6 +45,7 @@ class TypingGame(BoxLayout):
     falling_input_box = ObjectProperty(None)
     word_label = ObjectProperty(None)
     score_label = ObjectProperty(None)
+    level_label = ObjectProperty(None)  # เพิ่ม Property เพื่อให้สามารถเข้าถึง Label ของ Level ได้
     target_word = ""
     wordlist = words.words()
     score = 0  # เพิ่มแอตทริบิวต์ score
@@ -69,6 +70,9 @@ class TypingGame(BoxLayout):
         self.word_label = Label(text="", pos=(Window.width / 2, Window.height - 150), font_size=20)
         self.add_widget(self.word_label)
 
+        self.level_label = Label(text="Level: 0", pos=(10, Window.height - 60))  # เพิ่ม Label สำหรับแสดง Level
+        self.add_widget(self.level_label)
+
         self.score_label = Label(text="Score: 0", pos=(10, Window.height - 30))
         self.add_widget(self.score_label)
 
@@ -84,7 +88,7 @@ class TypingGame(BoxLayout):
     def upgrade_level(self):
         global level, scroll_offset, item_height, visible_items, length, paused, new_lvl, music_paused, cheat, active, active_2
 
-        if self.score >= (level + 1) * 30:
+        if self.score >= (level + 1) * 10:
             level += 1
             scroll_offset += 1
             item_height += 5
@@ -96,10 +100,13 @@ class TypingGame(BoxLayout):
             cheat = False
             active = False
             active_2 = False
-            self.falling_input_box.fall(speed=0.25 + level * 0.25)  # เพิ่มความเร็วของ TextInput
+            self.falling_input_box.fall(speed=0.25 + level * 0.09)  # เพิ่มความเร็วของ TextInput
+
+            # ปรับปรุง Label ของ Level
+            self.level_label.text = f"Level: {level}"
 
     def update(self, dt):
-        self.falling_input_box.fall(speed=0.25 + level * 0.25)  # เพิ่มความเร็วของ TextInput
+        self.falling_input_box.fall(speed=0.25 + level * 0.09)  # เพิ่มความเร็วของ TextInput
 
         if self.check_game_over():
             self.game_over()

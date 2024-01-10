@@ -33,7 +33,7 @@ length = 1
 class FallingInputBox(TextInput):
     def fall(self, speed=0.005):
         self.y -= speed
-
+    
 class TypingGame(BoxLayout):
     falling_input_box = ObjectProperty(None)
     word_label = ObjectProperty(None)
@@ -54,8 +54,8 @@ class TypingGame(BoxLayout):
         super(TypingGame, self).__init__(**kwargs)
 
         self.falling_input_box = FallingInputBox(
-            pos=(Window.width / 2 - 100, Window.height - 100),
-            size=(200, 30),
+            pos=(Window.width / 2 - 200, Window.height - 100),
+            size=(20, 10),  # Adjust the size here
             multiline=False
         )
         self.add_widget(self.falling_input_box)
@@ -115,7 +115,7 @@ class TypingGame(BoxLayout):
             self.score += 10
             self.score_label.text = f"Score: {self.score}"
 
-            self.falling_input_box.y = Window.height - 100
+            self.falling_input_box.y = Window.height 
             self.falling_input_box.text = ""
             self.choose_target_word()
 
@@ -189,10 +189,10 @@ class StartPage(Screen):
             text="START",
             on_press=self.start_game,
             size_hint=(None, None),  # Disable automatic resizing
-            size=(300, 200),
+            size=(200, 100),
             background_color=(0, 1, 0, 1),
             pos_hint={'center_x': 0.5, 'center_y': 0.5},
-            font_size=50  # เพิ่มขนาดตัวอักษรเป็น 30 pt
+            font_size=30  # เพิ่มขนาดตัวอักษรเป็น 30 pt
         )
 
         self.add_widget(start_button)

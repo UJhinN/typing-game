@@ -14,6 +14,22 @@ from nltk.corpus import words
 
 nltk.download('words')
 
+#----------------- GAME VARIABLE -----------------
+word_objects = []
+len_indexes = []
+list_ofword = []
+active_string = ""
+submit = ""
+txt_color, txt_color_2 = "", ""
+total_type = 0
+lives = 4
+level = 0
+scroll_offset = 0
+item_height = 40
+visible_items = 15
+length = 1
+
+
 class FallingInputBox(TextInput):
     def fall(self, speed=0.005):
         self.y -= speed
@@ -22,19 +38,15 @@ class TypingGame(BoxLayout):
     falling_input_box = ObjectProperty(None)
     word_label = ObjectProperty(None)
     score_label = ObjectProperty(None)
-    level_label = ObjectProperty(None)
+    level_label = ObjectProperty(None)  # เพิ่ม Property เพื่อให้สามารถเข้าถึง Label ของ Level ได้
     target_word = ""
     wordlist = words.words()
-    score = 0
+    score = 0  # เพิ่มแอตทริบิวต์ score
 
     wordlist.sort(key=len)
-    len_indexes = []
-    length_per_level = {1: 1, 5: 2, 6: 3}
-    level = 1  # เพิ่มการกำหนดค่าเริ่มต้นสำหรับ level
-
     for i in range(len(wordlist)):
-        if len(wordlist[i]) > length_per_level[1]:
-            length_per_level[1] += 1
+        if len(wordlist[i]) > length:
+            length += 1
             len_indexes.append(i)
     len_indexes.append(len(wordlist))
 
@@ -51,7 +63,7 @@ class TypingGame(BoxLayout):
         self.word_label = Label(text="", pos=(Window.width / 2, Window.height - 150), font_size=20)
         self.add_widget(self.word_label)
 
-        self.level_label = Label(text="Level: 0", pos=(10, Window.height - 60))
+        self.level_label = Label(text="Level: 0", pos=(10, Window.height - 60))  # เพิ่ม Label สำหรับแสดง Level
         self.add_widget(self.level_label)
 
         self.score_label = Label(text="Score: 0", pos=(10, Window.height - 30))
@@ -59,10 +71,6 @@ class TypingGame(BoxLayout):
 
         self.clock_event = Clock.schedule_interval(self.update, 1.0/120.0)
 
-        # กำหนดค่าเริ่มต้นให้ level
-        self.level = 1
-
-        # ทำการเรียก choose_target_word() ที่นี่
         self.choose_target_word()
 
         self.falling_input_box.bind(text=self.handle_collision)
@@ -71,25 +79,22 @@ class TypingGame(BoxLayout):
         self.add_widget(self.time_label)
 
     def upgrade_level(self):
-        global level, scroll_offset, item_height, visible_items, paused, new_lvl, music_paused, cheat, active, active_2
+        global level, scroll_offset, item_height, visible_items, length, paused, new_lvl, music_paused, cheat, active, active_2
 
-        if self.score >= (self.level + 1) * 10:
-            self.level += 1
+        if self.score >= (level + 1) * 10:
+            level += 1
             scroll_offset += 1
             item_height += 5
             visible_items += 2
-            paused = True
-            new_lvl = True
-            music_paused = False
-            cheat = False
-            active = False
-            active_2 = False
-            self.falling_input_box.fall(speed=0.25 + self.level * 0.09)
+            length += 1
 
-            self.level_label.text = f"Level: {self.level}"
+            self.falling_input_box.fall(speed=0.5 + level * 0.09)  # เพิ่มความเร็วของ TextInput
+
+            # ปรับปรุง Label ของ Level
+            self.level_label.text = f"Level: {level}"
 
     def update(self, dt):
-        self.falling_input_box.fall(speed=0.25 + self.level * 0.09)
+        self.falling_input_box.fall(speed=0.25 + level * 0.5)  # เพิ่มความเร็วของ TextInput
 
         if self.check_game_over():
             self.game_over()
@@ -100,7 +105,7 @@ class TypingGame(BoxLayout):
         if self.time_left <= 0:
             self.game_over()
 
-        self.upgrade_level()
+        self.upgrade_level()  # เรียกเมทอดอัปเกรดเลเวล
 
     def handle_collision(self, instance, value):
         typed_word = value
@@ -134,10 +139,10 @@ class TypingGame(BoxLayout):
         game_over_label = Label(text="Game Over!", font_size=30)
         self.add_widget(game_over_label)
 
-        final_label = Label(text=f"Final Score: {self.score}\nTime taken: {300 - self.time_left:.2f} seconds", font_size=20)
+        final_label = Label(text=f"Final Score: {self.score}\nTime taken: {30 - self.time_left:.2f} seconds", font_size=20)
         self.add_widget(final_label)
 
-        restart_button = Button(text="Restart", on_press=self.restart_game)
+        restart_button = Button(text="New game", on_press=self.restart_game)
         self.add_widget(restart_button)
 
     def win(self):
@@ -147,7 +152,7 @@ class TypingGame(BoxLayout):
         win_label = Label(text="WIN!", font_size=30)
         self.add_widget(win_label)
 
-        restart_button = Button(text="Restart", on_press=self.restart_game)
+        restart_button = Button(text="New", on_press=self.restart_game)
         self.add_widget(restart_button)
 
     def restart_game(self, instance):
@@ -155,8 +160,7 @@ class TypingGame(BoxLayout):
         self.__init__()
 
     def choose_target_word(self):
-        level_length = self.length_per_level[self.level]
-        self.target_word = random.choice([word for word in self.wordlist if len(word) == level_length])
+        self.target_word = random.choice(self.wordlist)
         self.word_label.text = self.target_word
 
 class TypingGameApp(App):
@@ -164,8 +168,9 @@ class TypingGameApp(App):
         sm = ScreenManager()
 
         start_page = StartPage(name="start", app=self)
-        game_screen = Screen(name="game")
+        game_screen = Screen(name="game")  # เปลี่ยน TypingGame เป็น Screen
 
+        # เพิ่ม TypingGame เป็นวิดเจ็ตลงใน Screen
         game_screen.add_widget(TypingGame())
 
         sm.add_widget(start_page)
@@ -180,19 +185,22 @@ class StartPage(Screen):
         super(StartPage, self).__init__(**kwargs)
         self.app = app
 
-        start_button = Button(text="Start", on_press=self.start_game, size_hint=(None, None), size=(200, 100), background_color=(0, 1, 0, 1))
-        start_button.pos = (Window.width / 2 - start_button.width / 2, Window.height / 2 - start_button.height / 4)
+        start_button = Button(
+            text="START",
+            on_press=self.start_game,
+            size_hint=(None, None),  # Disable automatic resizing
+            size=(300, 200),
+            background_color=(0, 1, 0, 1),
+            pos_hint={'center_x': 0.5, 'center_y': 0.5},
+            font_size=50  # เพิ่มขนาดตัวอักษรเป็น 30 pt
+        )
 
         self.add_widget(start_button)
-        self.children.append(start_button)
-
-    def on_window_resize(self, window, width, height):
-        self.ids.start_button.pos = (width / 2 - self.ids.start_button.width / 2, height / 2 - self.ids.start_button.height / 2)
 
     def start_game(self, instance):
         self.app.root.current = "game"
-        # เรียก choose_target_word() ที่นี่ เพื่อให้ level ถูกกำหนดค่าแล้ว
-        self.app.root.get_screen('game').children[0].choose_target_word()
+
+
 
 if __name__ == "__main__":
     TypingGameApp().run()

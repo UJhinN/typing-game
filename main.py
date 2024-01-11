@@ -31,7 +31,7 @@ length = 1
 
 
 class FallingInputBox(TextInput):
-    def fall(self, speed=0.005):
+    def fall(self, speed=0):
         self.y -= speed
     
 class TypingGame(BoxLayout):
@@ -55,7 +55,7 @@ class TypingGame(BoxLayout):
 
         self.falling_input_box = FallingInputBox(
             pos=(Window.width / 2 - 200, Window.height - 100),
-            size=(20, 10),  # Adjust the size here
+            size=(400, 10),  # Adjust the size here
             multiline=False
         )
         self.add_widget(self.falling_input_box)
@@ -79,7 +79,7 @@ class TypingGame(BoxLayout):
         self.add_widget(self.time_label)
 
     def upgrade_level(self):
-        global level, scroll_offset, item_height, visible_items, length, paused, new_lvl, music_paused, cheat, active, active_2
+        global level, scroll_offset, item_height, visible_items, length
 
         if self.score >= (level + 1) * 10:
             level += 1
@@ -88,13 +88,13 @@ class TypingGame(BoxLayout):
             visible_items += 2
             length += 1
 
-            self.falling_input_box.fall(speed=0.5 + level * 0.09)  # เพิ่มความเร็วของ TextInput
+            self.falling_input_box.fall(speed=0.005 + level * 0.09)  # เพิ่มความเร็วของ TextInput
 
             # ปรับปรุง Label ของ Level
             self.level_label.text = f"Level: {level}"
 
     def update(self, dt):
-        self.falling_input_box.fall(speed=0.25 + level * 0.5)  # เพิ่มความเร็วของ TextInput
+        self.falling_input_box.fall(speed=0.05 + level * 0.5)  # เพิ่มความเร็วของ TextInput
 
         if self.check_game_over():
             self.game_over()
@@ -139,7 +139,8 @@ class TypingGame(BoxLayout):
         game_over_label = Label(text="Game Over!", font_size=30)
         self.add_widget(game_over_label)
 
-        final_label = Label(text=f"Final Score: {self.score}\nTime taken: {30 - self.time_left:.2f} seconds", font_size=20)
+        time_taken = 30 - max(0, int(self.time_left))
+        final_label = Label(text=f"Final Score: {self.score}\nTime taken: {time_taken:.2f} seconds", font_size=20)
         self.add_widget(final_label)
 
         restart_button = Button(text="New game", on_press=self.restart_game)
@@ -156,8 +157,20 @@ class TypingGame(BoxLayout):
         self.add_widget(restart_button)
 
     def restart_game(self, instance):
+        global level, scroll_offset, item_height, visible_items, length
+        level = 0
+        scroll_offset = 0
+        item_height = 40
+        visible_items = 15
+        length = 1
+
+        self.clock_event.cancel()  # Cancel the existing clock event
+
         self.clear_widgets()
         self.__init__()
+
+        self.clock_event = Clock.schedule_interval(self.update, 1.0/120.0)  # Schedule a new clock event
+
 
     def choose_target_word(self):
         self.target_word = random.choice(self.wordlist)

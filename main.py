@@ -1,7 +1,7 @@
-
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 from kivy.core.window import Window
@@ -21,20 +21,23 @@ class TypingAttackGame(BoxLayout):
         # Initialize variables
         self.score = 0
         self.enemies = []
+        self.input_text = ''  # Store input text
 
         # Create widgets
-        self.score_label = Label(text=f"Score: {self.score}", font_size=24)
-        self.game_area = Widget()
+        self.score_label = Label(text=f"Score: {self.score}", font_size=35, size_hint=(1, 0.1), pos_hint={'top': 1})  # Updated size_hint and pos_hint
+        self.game_area = Widget(size_hint=(1, 0.8))  # Updated size_hint
+        self.text_input = TextInput(multiline=False, size_hint=(1, 0.1), height=50)
 
         # Add widgets to layout
         self.add_widget(self.score_label)
         self.add_widget(self.game_area)
+        self.add_widget(self.text_input)
 
         # Load words from file
         self.word_list = self.load_words_from_file("words.txt")
 
         # Schedule enemy spawning
-        Clock.schedule_interval(self.spawn_enemy, 1)
+        Clock.schedule_interval(self.spawn_enemy, 4.5)
 
         # Keyboard bindings
         self.keys_pressed = set()
@@ -56,7 +59,9 @@ class TypingAttackGame(BoxLayout):
     def spawn_enemy(self, dt):
         if self.word_list:
             enemy_word = random.choice(self.word_list)
-            enemy = Label(text=enemy_word)
+            enemy = Label(text=enemy_word, font_size=30)  # ตั้งค่า font_size ให้เล็กลง
+            enemy.size_hint = (None, None)  # กำหนดให้ size_hint เป็น (None, None)
+            enemy.size = (100, 30) 
             enemy.x = random.randint(0, Window.width - enemy.width)
             enemy.y = Window.height
             self.enemies.append(enemy)
@@ -65,19 +70,9 @@ class TypingAttackGame(BoxLayout):
     def on_key_down(self, keyboard, keycode, text, modifiers):
         if text.isalpha():
             self.keys_pressed.add(text)
-            self.input_text += text  # Append to input text
-
-            # Check for matching enemies
+            self.input_text += text
             self.check_for_matches()
 
-            # Check if any enemy has a matching text
-            for enemy in self.enemies:
-                if enemy.y < self.game_area.height / 2 and enemy.text == text:
-                    self.score += 10
-                    self.score_label.text = f"Score: {self.score}"
-                    self.game_area.remove_widget(enemy)
-                    self.enemies.remove(enemy)
-                    break  # Break after handling one enemy (optional)
     def check_for_matches(self):
         for enemy in self.enemies:
             if enemy.y < self.game_area.height / 2 and enemy.text == self.input_text:
@@ -85,24 +80,21 @@ class TypingAttackGame(BoxLayout):
                 self.score_label.text = f"Score: {self.score}"
                 self.game_area.remove_widget(enemy)
                 self.enemies.remove(enemy)
-                self.input_text = ''  # Clear input text
-                break               
+                self.input_text = ''
+                break
+
     def on_key_up(self, keyboard, keycode):
         if keycode[1] in self.keys_pressed:
             self.keys_pressed.remove(keycode[1])
 
     def update(self, dt):
-        # Move enemies
         for enemy in self.enemies:
             enemy.y -= ENEMY_SPEED
-
-            # Check for collision with the bottom of the window
             if enemy.y < 0:
                 self.game_area.remove_widget(enemy)
                 self.enemies.remove(enemy)
 
     def on_touch_move(self, touch):
-        # Move player with touch input
         if touch.y < self.game_area.height / 2:
             self.game_area.x = touch.x - self.game_area.width / 2
 

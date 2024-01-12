@@ -13,6 +13,8 @@ Window.size = (1000, 800)
 
 # Constants
 ENEMY_SPEED = 0.5
+CORRECT_COLOR = (0, 1, 0, 1)  # Green color for correct words
+WRONG_COLOR = (1, 0, 0, 1)    # Red color for wrong words
 
 class TypingAttackGame(BoxLayout):
     def __init__(self, **kwargs):
@@ -28,9 +30,14 @@ class TypingAttackGame(BoxLayout):
         self.game_area = Widget()
 
         # Add TextInput for typing
-        self.text_input = TextInput(multiline=False, size_hint=(1, 0.15), font_size=24)
+        self.text_input = TextInput(
+            multiline=False, 
+            size_hint=(1, 1), 
+            font_size=24, 
+            background_color=(1, 1, 1, 1)  # Set background color to white
+        )
         self.text_input.bind(on_text_validate=self.on_text_validate)
-        
+
         # Move the TextInput to the bottom
         self.text_input.y = 0
         self.add_widget(self.text_input)
@@ -43,7 +50,7 @@ class TypingAttackGame(BoxLayout):
         self.word_list = self.load_words_from_file("words.txt")
 
         # Schedule enemy spawning
-        Clock.schedule_interval(self.spawn_enemy, 2)
+        Clock.schedule_interval(self.spawn_enemy, 3.5)
 
         # Keyboard bindings
         self.keys_pressed = set()
@@ -67,13 +74,20 @@ class TypingAttackGame(BoxLayout):
                 self.game_area.remove_widget(enemy)
                 self.enemies.remove(enemy)
                 instance.text = ""  # Clear the TextInput after successful typing
+                self.text_input.background_color = CORRECT_COLOR  # Set background color to green
+                Clock.schedule_once(self.reset_text_input_color, 0.5)  # Reset color after 0.5 seconds
                 word_matched = True  # Set the flag to True
                 Clock.schedule_once(self.set_focus, 0.1)  # Set focus after a short delay
                 break  # Exit the loop since we found a match
 
         if not word_matched:
             instance.text = ""  # Clear the TextInput after Enter is pressed
+            self.text_input.background_color = WRONG_COLOR  # Set background color to red
+            Clock.schedule_once(self.reset_text_input_color, 0.5)  # Reset color after 0.5 seconds
             Clock.schedule_once(self.set_focus, 0.1)  # Set focus after a short delay
+
+    def reset_text_input_color(self, dt):
+        self.text_input.background_color = (1, 1, 1, 1)  # Reset background color to white
 
     def load_words_from_file(self, filename):
         try:

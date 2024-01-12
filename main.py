@@ -6,12 +6,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 from kivy.core.window import Window
 import random
+from kivy.clock import mainthread
 
 # Set window size
 Window.size = (1000, 800)
 
 # Constants
-ENEMY_SPEED = 0.2
+ENEMY_SPEED = 0.5
 
 class TypingAttackGame(BoxLayout):
     def __init__(self, **kwargs):
@@ -27,8 +28,11 @@ class TypingAttackGame(BoxLayout):
         self.game_area = Widget()
 
         # Add TextInput for typing
-        self.text_input = TextInput(multiline=False, size_hint=(1, 0.1), font_size=24)
+        self.text_input = TextInput(multiline=False, size_hint=(1, 0.15), font_size=24)
         self.text_input.bind(on_text_validate=self.on_text_validate)
+        
+        # Move the TextInput to the bottom
+        self.text_input.y = 0
         self.add_widget(self.text_input)
 
         # Add widgets to layout
@@ -39,7 +43,7 @@ class TypingAttackGame(BoxLayout):
         self.word_list = self.load_words_from_file("words.txt")
 
         # Schedule enemy spawning
-        Clock.schedule_interval(self.spawn_enemy, 3.5)
+        Clock.schedule_interval(self.spawn_enemy, 2)
 
         # Keyboard bindings
         self.keys_pressed = set()
@@ -47,6 +51,29 @@ class TypingAttackGame(BoxLayout):
 
         # Game loop
         Clock.schedule_interval(self.update, 1.0 / 60.0)
+    
+    @mainthread
+    def set_focus(self, dt):
+        self.text_input.focus = True
+
+    def on_text_validate(self, instance):
+        typed_word = instance.text
+        word_matched = False  # Flag to check if any enemy matches the typed word
+
+        for enemy in self.enemies:
+            if typed_word == enemy.text:
+                self.score += 10
+                self.score_label.text = f"Score: {self.score}"
+                self.game_area.remove_widget(enemy)
+                self.enemies.remove(enemy)
+                instance.text = ""  # Clear the TextInput after successful typing
+                word_matched = True  # Set the flag to True
+                Clock.schedule_once(self.set_focus, 0.1)  # Set focus after a short delay
+                break  # Exit the loop since we found a match
+
+        if not word_matched:
+            instance.text = ""  # Clear the TextInput after Enter is pressed
+            Clock.schedule_once(self.set_focus, 0.1)  # Set focus after a short delay
 
     def load_words_from_file(self, filename):
         try:
@@ -74,16 +101,6 @@ class TypingAttackGame(BoxLayout):
     def on_key_up(self, keyboard, keycode):
         if keycode[1] in self.keys_pressed:
             self.keys_pressed.remove(keycode[1])
-
-    def on_text_validate(self, instance):
-        typed_word = instance.text
-        for enemy in self.enemies:
-            if typed_word == enemy.text:
-                self.score += 10
-                self.score_label.text = f"Score: {self.score}"
-                self.game_area.remove_widget(enemy)
-                self.enemies.remove(enemy)
-                instance.text = ""  # Clear the TextInput after successful typing
 
     def update(self, dt):
         # Move enemies

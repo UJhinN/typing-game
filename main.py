@@ -26,20 +26,22 @@ class TypingAttackGame(BoxLayout):
         self.enemies = []
 
         # Create widgets
-        self.score_label = Label(text=f"Score: {self.score}", font_size=24)
+        self.score_label = Label(text=f"Score: {self.score}", font_size=36)
         self.game_area = Widget()
 
         # Add TextInput for typing
         self.text_input = TextInput(
             multiline=False, 
-            size_hint=(1, 1), 
-            font_size=24, 
-            background_color=(1, 1, 1, 1)  # Set background color to white
+            size_hint=(1, None),  # Set height to None
+            height=100,  # Set a specific height as needed
+            font_size=30,
+            background_color=(1, 1, 1, 1)
         )
         self.text_input.bind(on_text_validate=self.on_text_validate)
 
-        # Move the TextInput to the bottom
-        self.text_input.y = 0
+        # Set the size of the TextInput box to be resizable
+        self.text_input.size_hint_y = None
+
         self.add_widget(self.text_input)
 
         # Add widgets to layout
@@ -102,7 +104,11 @@ class TypingAttackGame(BoxLayout):
     def spawn_enemy(self, dt):
         if self.word_list:
             enemy_word = random.choice(self.word_list)
-            enemy = Label(text=enemy_word)
+            
+            # Set the desired font size for the falling word
+            enemy_font_size = random.randint(18, 36)
+
+            enemy = Label(text=enemy_word, font_size=enemy_font_size)
             enemy.x = random.randint(0, Window.width - enemy.width)
             enemy.y = Window.height
             self.enemies.append(enemy)
@@ -123,8 +129,27 @@ class TypingAttackGame(BoxLayout):
 
             # Check for collision with bottom of the window
             if enemy.y < 0:
-                self.game_area.remove_widget(enemy)
-                self.enemies.remove(enemy)
+                self.handle_missed_word(enemy)
+
+    def handle_missed_word(self, enemy):
+        # Remove the missed word from the game area and the list of enemies
+        self.game_area.remove_widget(enemy)
+        self.enemies.remove(enemy)
+
+        # Deduct points for missing a word
+        self.score -= 5
+        self.score = max(0, self.score)  # Ensure the score does not go below zero
+
+        # Update the score label
+        self.score_label.text = f"Score: {self.score}"
+
+        # Optionally, you can add additional feedback for the player when they miss a word
+        # For example, change the color of the score label to indicate a penalty
+        self.score_label.color = (1, 0, 0, 1)  # Red color
+        Clock.schedule_once(self.reset_score_label_color, 0.5)  # Reset color after 0.5 seconds
+
+    def reset_score_label_color(self, dt):
+        self.score_label.color = (1, 1, 1, 1)  # Reset color to white
 
     def on_touch_move(self, touch):
         # Move player with touch input

@@ -3,8 +3,9 @@ from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
-from kivy.clock import Clock
+from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
+from kivy.clock import Clock
 import random
 from kivy.clock import mainthread
 
@@ -17,9 +18,10 @@ CORRECT_COLOR = (0, 1, 0, 1)  # Green color for correct words
 WRONG_COLOR = (1, 0, 0, 1)    # Red color for wrong words
 
 class TypingAttackGame(BoxLayout):
-    def __init__(self, **kwargs):
+    def __init__(self, screen_manager, **kwargs):
         super(TypingAttackGame, self).__init__(**kwargs)
         self.orientation = 'vertical'
+        self.screen_manager = screen_manager
 
         # Initialize variables
         self.score = 0
@@ -60,7 +62,13 @@ class TypingAttackGame(BoxLayout):
 
         # Game loop
         Clock.schedule_interval(self.update, 1.0 / 60.0)
-    
+
+        # Add timer label and start the countdown
+        self.timer_label = Label(text="Time: 60", font_size=24)
+        self.add_widget(self.timer_label)
+        self.remaining_time = 60
+        Clock.schedule_interval(self.update_timer, 1.0)
+
     @mainthread
     def set_focus(self, dt):
         self.text_input.focus = True
@@ -151,14 +159,97 @@ class TypingAttackGame(BoxLayout):
     def reset_score_label_color(self, dt):
         self.score_label.color = (1, 1, 1, 1)  # Reset color to white
 
+    def update_timer(self, dt):
+        # Update the countdown timer
+        self.remaining_time -= 1
+        self.timer_label.text = f"Time: {self.remaining_time}"
+
+        # Check if time is up
+        if self.remaining_time <= 0:
+            self.end_game()
+
+    def end_game(self):
+        # Game Over logic
+        print("Game Over!")
+        self.screen_manager.current = 'game_over'  # สลับไปยังหน้าจอ 'game_over'
+        # You can perform other actions here as needed
+
     def on_touch_move(self, touch):
         # Move player with touch input
         if touch.y < self.game_area.height / 2:
             self.game_area.x = touch.x - self.game_area.width / 2
 
+class GameOverScreen(Screen):
+    def __init__(self, screen_manager, **kwargs):
+        super(GameOverScreen, self).__init__(**kwargs)
+        self.screen_manager = screen_manager
+
+        # Create widgets for the Game Over screen
+        game_over_label = Label(text="Game Over", font_size=48)
+        replay_button = Label(text="Replay", font_size=36, color=(0, 1, 0, 1))
+        replay_button.bind(on_touch_down=self.replay)
+
+        # Create layout for the Game Over screen
+        layout = BoxLayout(orientation='vertical')
+        layout.add_widget(game_over_label)
+        layout.add_widget(replay_button)
+
+        self.add_widget(layout)
+
+    def replay(self, instance, touch):
+        # Replay the game by resetting the score and time, and switching back to the game screen
+        game_screen = self.screen_manager.get_screen('game')
+        game_screen.score = 0
+        game_screen.score_label.text = "Score: 0"
+        game_screen.remaining_time = 60
+        game_screen.timer_label.text = "Time: 60"
+        game_screen.text_input.text = ""  # Clear the TextInput
+        self.screen_manager.current = 'start'  # Switch to the 'start' screen
+        Clock.schedule_once(game_screen.set_focus, 0.1)
+
+class StartScreen(Screen):
+    def __init__(self, screen_manager, **kwargs):
+        super(StartScreen, self).__init__(**kwargs)
+        self.screen_manager = screen_manager
+
+        # Create widgets for the Start screen
+        start_label = Label(text="TYPING-GAME", font_size=48)
+        start_button = Label(text="Start Game", font_size=36, color=(0, 1, 0, 1))
+        start_button.bind(on_touch_down=self.start_game)
+
+        # Create layout for the Start screen
+        layout = BoxLayout(orientation='vertical')
+        layout.add_widget(start_label)
+        layout.add_widget(start_button)
+
+        self.add_widget(layout)
+
+    def start_game(self, instance, touch):
+        # Start the game by switching to the game screen
+        self.screen_manager.current = 'game'
+
 class TypingAttackApp(App):
     def build(self):
-        return TypingAttackGame()
+        # Create ScreenManager
+        screen_manager = ScreenManager()
+
+        # Create and add Start Screen to ScreenManager
+        start_screen = StartScreen(screen_manager, name='start')
+        screen_manager.add_widget(start_screen)
+
+        # Create and add Game Screen to ScreenManager
+        game_screen = Screen(name='game')
+        game_screen.add_widget(TypingAttackGame(screen_manager))
+        screen_manager.add_widget(game_screen)
+
+        # Create and add Game Over Screen to ScreenManager
+        game_over_screen = GameOverScreen(screen_manager, name='game_over')
+        screen_manager.add_widget(game_over_screen)
+
+        # Set the current screen to 'start'
+        screen_manager.current = 'start'
+
+        return screen_manager
 
 if __name__ == '__main__':
     TypingAttackApp().run()

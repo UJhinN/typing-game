@@ -1,219 +1,114 @@
-import kivy
-import nltk
-import random
+
 from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.properties import ObjectProperty
-from kivy.clock import Clock
+from kivy.uix.widget import Widget
 from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
-from kivy.uix.button import Button
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy.clock import Clock
 from kivy.core.window import Window
-from nltk.corpus import words
+import random
 
-nltk.download('words')
+# Set window size
+Window.size = (800, 600)
 
-#----------------- GAME VARIABLE -----------------
-word_objects = []
-len_indexes = []
-list_ofword = []
-active_string = ""
-submit = ""
-txt_color, txt_color_2 = "", ""
-total_type = 0
-lives = 4
-level = 0
-scroll_offset = 0
-item_height = 40
-visible_items = 15
-length = 1
+# Constants
+ENEMY_SPEED = 0.5
 
-
-class FallingInputBox(TextInput):
-    def fall(self, speed=0):
-        self.y -= speed
-    
-class TypingGame(BoxLayout):
-    falling_input_box = ObjectProperty(None)
-    word_label = ObjectProperty(None)
-    score_label = ObjectProperty(None)
-    level_label = ObjectProperty(None)  # เพิ่ม Property เพื่อให้สามารถเข้าถึง Label ของ Level ได้
-    target_word = ""
-    wordlist = words.words()
-    score = 0  # เพิ่มแอตทริบิวต์ score
-
-    wordlist.sort(key=len)
-    for i in range(len(wordlist)):
-        if len(wordlist[i]) > length:
-            length += 1
-            len_indexes.append(i)
-    len_indexes.append(len(wordlist))
-
+class TypingAttackGame(BoxLayout):
     def __init__(self, **kwargs):
-        super(TypingGame, self).__init__(**kwargs)
+        super(TypingAttackGame, self).__init__(**kwargs)
+        self.orientation = 'vertical'
 
-        self.falling_input_box = FallingInputBox(
-            pos=(Window.width / 2 - 200, Window.height - 100),
-            size=(400, 10),  # Adjust the size here
-            multiline=False
-        )
-        self.add_widget(self.falling_input_box)
+        # Initialize variables
+        self.score = 0
+        self.enemies = []
 
-        self.word_label = Label(text="", pos=(Window.width / 2, Window.height - 150), font_size=20)
-        self.add_widget(self.word_label)
+        # Create widgets
+        self.score_label = Label(text=f"Score: {self.score}", font_size=24)
+        self.game_area = Widget()
 
-        self.level_label = Label(text="Level: 0", pos=(10, Window.height - 60))  # เพิ่ม Label สำหรับแสดง Level
-        self.add_widget(self.level_label)
-
-        self.score_label = Label(text="Score: 0", pos=(10, Window.height - 30))
+        # Add widgets to layout
         self.add_widget(self.score_label)
+        self.add_widget(self.game_area)
 
-        self.clock_event = Clock.schedule_interval(self.update, 1.0/120.0)
+        # Load words from file
+        self.word_list = self.load_words_from_file("words.txt")
 
-        self.choose_target_word()
+        # Schedule enemy spawning
+        Clock.schedule_interval(self.spawn_enemy, 1)
 
-        self.falling_input_box.bind(text=self.handle_collision)
-        self.time_left = 300
-        self.time_label = Label(text=f"Time left: {self.time_left}", pos=(Window.width - 150, Window.height - 30))
-        self.add_widget(self.time_label)
+        # Keyboard bindings
+        self.keys_pressed = set()
+        self.bind(on_key_down=self.on_key_down, on_key_up=self.on_key_up)
 
-    def upgrade_level(self):
-        global level, scroll_offset, item_height, visible_items, length
+        # Game loop
+        Clock.schedule_interval(self.update, 1.0 / 60.0)
 
-        if self.score >= (level + 1) * 10:
-            level += 1
-            scroll_offset += 1
-            item_height += 5
-            visible_items += 2
-            length += 1
+    def load_words_from_file(self, filename):
+        try:
+            with open(filename, 'r') as file:
+                words = [line.strip() for line in file.readlines() if line.strip()]
+                print(f"Loaded words: {words}")
+                return words
+        except FileNotFoundError:
+            print(f"Error: {filename} not found.")
+            return []
 
-            self.falling_input_box.fall(speed=0.005 + level * 0.09)  # เพิ่มความเร็วของ TextInput
+    def spawn_enemy(self, dt):
+        if self.word_list:
+            enemy_word = random.choice(self.word_list)
+            enemy = Label(text=enemy_word)
+            enemy.x = random.randint(0, Window.width - enemy.width)
+            enemy.y = Window.height
+            self.enemies.append(enemy)
+            self.game_area.add_widget(enemy)
 
-            # ปรับปรุง Label ของ Level
-            self.level_label.text = f"Level: {level}"
+    def on_key_down(self, keyboard, keycode, text, modifiers):
+        if text.isalpha():
+            self.keys_pressed.add(text)
+            self.input_text += text  # Append to input text
+
+            # Check for matching enemies
+            self.check_for_matches()
+
+            # Check if any enemy has a matching text
+            for enemy in self.enemies:
+                if enemy.y < self.game_area.height / 2 and enemy.text == text:
+                    self.score += 10
+                    self.score_label.text = f"Score: {self.score}"
+                    self.game_area.remove_widget(enemy)
+                    self.enemies.remove(enemy)
+                    break  # Break after handling one enemy (optional)
+    def check_for_matches(self):
+        for enemy in self.enemies:
+            if enemy.y < self.game_area.height / 2 and enemy.text == self.input_text:
+                self.score += 10
+                self.score_label.text = f"Score: {self.score}"
+                self.game_area.remove_widget(enemy)
+                self.enemies.remove(enemy)
+                self.input_text = ''  # Clear input text
+                break               
+    def on_key_up(self, keyboard, keycode):
+        if keycode[1] in self.keys_pressed:
+            self.keys_pressed.remove(keycode[1])
 
     def update(self, dt):
-        self.falling_input_box.fall(speed=0.05 + level * 0.5)  # เพิ่มความเร็วของ TextInput
+        # Move enemies
+        for enemy in self.enemies:
+            enemy.y -= ENEMY_SPEED
 
-        if self.check_game_over():
-            self.game_over()
+            # Check for collision with the bottom of the window
+            if enemy.y < 0:
+                self.game_area.remove_widget(enemy)
+                self.enemies.remove(enemy)
 
-        self.time_left -= dt
-        self.time_label.text = f"Time left: {max(0, int(self.time_left))}"
+    def on_touch_move(self, touch):
+        # Move player with touch input
+        if touch.y < self.game_area.height / 2:
+            self.game_area.x = touch.x - self.game_area.width / 2
 
-        if self.time_left <= 0:
-            self.game_over()
-
-        self.upgrade_level()  # เรียกเมทอดอัปเกรดเลเวล
-
-    def handle_collision(self, instance, value):
-        typed_word = value
-        correct = all(typed_char == target_char for typed_char, target_char in zip(typed_word, self.target_word))
-
-        if correct and len(typed_word) == len(self.target_word):
-            self.score += 10
-            self.score_label.text = f"Score: {self.score}"
-
-            self.falling_input_box.y = Window.height 
-            self.falling_input_box.text = ""
-            self.choose_target_word()
-
-            if self.score >= 9999:
-                self.win()
-        elif not correct:
-            self.score = max(0, self.score - self.score // 1.5)
-            self.score_label.text = f"Score: {self.score}"
-
-            self.falling_input_box.y = Window.height - 100
-            self.falling_input_box.text = ""
-            self.choose_target_word()
-
-    def check_game_over(self):
-        return self.falling_input_box.y + self.falling_input_box.height < 0
-
-    def game_over(self):
-        self.clock_event.cancel()
-        self.clear_widgets()
-
-        game_over_label = Label(text="Game Over!", font_size=30)
-        self.add_widget(game_over_label)
-
-        time_taken = 30 - max(0, int(self.time_left))
-        final_label = Label(text=f"Final Score: {self.score}\nTime taken: {time_taken:.2f} seconds", font_size=20)
-        self.add_widget(final_label)
-
-        restart_button = Button(text="New game", on_press=self.restart_game)
-        self.add_widget(restart_button)
-
-    def win(self):
-        self.clock_event.cancel()
-        self.clear_widgets()
-
-        win_label = Label(text="WIN!", font_size=30)
-        self.add_widget(win_label)
-
-        restart_button = Button(text="New", on_press=self.restart_game)
-        self.add_widget(restart_button)
-
-    def restart_game(self, instance):
-        global level, scroll_offset, item_height, visible_items, length
-        level = 0
-        scroll_offset = 0
-        item_height = 40
-        visible_items = 15
-        length = 1
-
-        self.clock_event.cancel()  # Cancel the existing clock event
-
-        self.clear_widgets()
-        self.__init__()
-
-        self.clock_event = Clock.schedule_interval(self.update, 1.0/120.0)  # Schedule a new clock event
-
-
-    def choose_target_word(self):
-        self.target_word = random.choice(self.wordlist)
-        self.word_label.text = self.target_word
-
-class TypingGameApp(App):
+class TypingAttackApp(App):
     def build(self):
-        sm = ScreenManager()
+        return TypingAttackGame()
 
-        start_page = StartPage(name="start", app=self)
-        game_screen = Screen(name="game")  # เปลี่ยน TypingGame เป็น Screen
-
-        # เพิ่ม TypingGame เป็นวิดเจ็ตลงใน Screen
-        game_screen.add_widget(TypingGame())
-
-        sm.add_widget(start_page)
-        sm.add_widget(game_screen)
-
-        sm.current = "start"
-
-        return sm
-
-class StartPage(Screen):
-    def __init__(self, app, **kwargs):
-        super(StartPage, self).__init__(**kwargs)
-        self.app = app
-
-        start_button = Button(
-            text="START",
-            on_press=self.start_game,
-            size_hint=(None, None),  # Disable automatic resizing
-            size=(200, 100),
-            background_color=(0, 1, 0, 1),
-            pos_hint={'center_x': 0.5, 'center_y': 0.5},
-            font_size=30  # เพิ่มขนาดตัวอักษรเป็น 30 pt
-        )
-
-        self.add_widget(start_button)
-
-    def start_game(self, instance):
-        self.app.root.current = "game"
-
-
-
-if __name__ == "__main__":
-    TypingGameApp().run()
+if __name__ == '__main__':
+    TypingAttackApp().run()

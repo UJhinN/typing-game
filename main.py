@@ -30,13 +30,15 @@ class TypingAttackGame(BoxLayout):
         # Create widgets
         self.score_label = Label(text=f"Score: {self.score}", font_size=36)
         self.game_area = Widget()
-        self.correct_sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\Renser - Arcade Coins.mp3")  # Replace 'correct_sound.mp3' with your actual sound file
-        self.incorrect_sound = SoundLoader.load('C:\\Users\\AVS_BP\\Downloads\\Renser - Arcade Coins.mp3')  # Replace 'incorrect_sound.mp3' with your actual sound file
-        self.correct_sound.volume = 0.5
-        self.incorrect_sound.volume = 0.5
+        self.sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\sound6.mp3") 
+        self.sound.volume = 0.03
+        self.sound.play()
 
-        if not self.correct_sound or not self.incorrect_sound:
+        if not self.sound:
             print("Error loading sound files.")
+        
+        
+
         # Add TextInput for typing
         self.text_input = TextInput(
             multiline=False, 
@@ -71,13 +73,31 @@ class TypingAttackGame(BoxLayout):
         self.bind(on_key_down=self.on_key_down, on_key_up=self.on_key_up)
 
         # Game loop
-        Clock.schedule_interval(self.update, 1.0 / 60.0)
+        Clock.schedule_interval(self.update, 1.0 / 80.0)
 
         # Add timer label and start the countdown
-        self.timer_label = Label(text="Time: 300", font_size=24)
+        self.timer_label = Label(text="Time: 180", font_size=24)
         self.add_widget(self.timer_label)
-        self.remaining_time = 300
+        self.remaining_time = 180
         Clock.schedule_interval(self.update_timer, 1.0)
+    def show_high_score_screen(self):
+        # Switch to the High Score screen and pass the high score
+        high_score_screen = self.screen_manager.get_screen('high_score')
+        high_score_screen.high_score = self.get_high_score()
+        self.screen_manager.current = 'high_score'
+
+        # Stop the clock interval for updating the timer
+        Clock.unschedule(self.update_timer)
+
+        # Switch to the 'game_over' screen and pass the score
+        game_over_screen = self.screen_manager.get_screen('game_over')
+        game_over_screen.score = self.score
+        game_over_screen.update_score_label()  # Update the score label
+        self.screen_manager.current = 'game_over'
+
+        # Play additional sound (if available)
+        if self.additional_sound:
+            self.additional_sound.play()
     def on_text_validate(self, instance):
         typed_word = instance.text
         word_matched = False
@@ -90,22 +110,37 @@ class TypingAttackGame(BoxLayout):
                 word_matched = True
                 break    
 
-        if self.correct_sound:
-            self.correct_sound.unload()
-        if self.incorrect_sound:
-            self.incorrect_sound.unload()
-                # ... (rest of your existing code)
-
         if not word_matched:
             # Play incorrect sound
             if self.incorrect_sound:
-                self.incorrect_sound.play()    
+                self.incorrect_sound.play()
+
+        # Additional sound for testing
+        if self.additional_sound:
+            self.additional_sound.play()
+
+        # Rest of your existing code...
+    def switch_to_game_over_screen(self):
+        game_over_screen = self.screen_manager.get_screen('game_over')
+        game_over_screen.score = self.score
+        self.screen_manager.current = 'game_over'
+
+    def end_game(self):
+        # Game Over logic
+        print("Game Over!")
+
+        # Stop the clock interval for updating the timer
+        Clock.unschedule(self.update_timer)
+
+        # Switch to the 'game_over' screen
+        self.switch_to_game_over_screen()
+
     def restart_game(self, instance):
         # Reset the game state
         self.score = 0
         self.score_label.text = f"Score: {self.score}"
         
-        self.remaining_time = 300
+        self.remaining_time = 180
         self.timer_label.text = f"Time: {self.remaining_time}"
 
         # Clear existing enemies and spawn new ones
@@ -116,13 +151,15 @@ class TypingAttackGame(BoxLayout):
 
         # Reset the text input
         self.text_input.text = ""
-
+        if self.sound:
+            self.sound.play()
         # Set focus to the text input after a short delay
         Clock.schedule_once(self.set_focus, 0.1)
 
     def reset_enemy_speed(self):
         global ENEMY_SPEED
         ENEMY_SPEED = 0.5
+
     @mainthread
     def set_focus(self, dt):
         self.text_input.focus = True
@@ -233,7 +270,33 @@ class TypingAttackGame(BoxLayout):
 
     def end_game(self):
         # Game Over logic
-        print("Game Over!")
+
+        # Check if the current score is higher than the existing high score
+        if self.score > self.get_high_score():
+            self.set_high_score(self.score)  # Update the high score
+            self.show_high_score_screen()  # Switch to the High Score screen
+        else:
+            self.switch_to_game_over_screen()  # Switch to the 'game_over' screen
+
+    def get_high_score(self):
+        # Function to retrieve the high score from storage (e.g., a file)
+        try:
+            with open("high_score.txt", "r") as file:
+                high_score = int(file.read())
+                return high_score
+        except FileNotFoundError:
+            return 0
+
+    def set_high_score(self, score):
+        # Function to set the high score in storage (e.g., a file)
+        with open("high_score.txt", "w") as file:
+            file.write(str(score))
+
+    def show_high_score_screen(self):
+        # Switch to the High Score screen and pass the high score
+        high_score_screen = self.screen_manager.get_screen('high_score')
+        high_score_screen.high_score = self.get_high_score()
+        self.screen_manager.current = 'high_score'
 
         # Stop the clock interval for updating the timer
         Clock.unschedule(self.update_timer)
@@ -259,7 +322,7 @@ class GameOverScreen(Screen):
         score_label = Label(text=f"Your Score: {self.score}", font_size=36)
 
         restart_button = Button(
-            text="Newgame",
+            text="New Game",
             font_size=24,
             size_hint=(1, 0.5),
         )
@@ -273,13 +336,14 @@ class GameOverScreen(Screen):
 
         self.add_widget(layout)
 
+
     def restart_game(self, instance):
         # Reset the game by switching to the game screen
         self.screen_manager.current = 'game'
 
         # Reset the remaining time to its initial value
         game_screen = self.screen_manager.get_screen('game')
-        game_screen.children[0].remaining_time = 300
+        game_screen.children[0].remaining_time = 180
 
         # Reset the score to 0
         game_screen.children[0].score = 0
@@ -292,7 +356,10 @@ class GameOverScreen(Screen):
 
         # Reset the text input
         game_screen.children[0].text_input.text = ""
-
+        self.sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\sound6.mp3") 
+        self.sound.volume = 0.03
+        if self.sound:
+            self.sound.play()
         # Set focus to the text input after a short delay
         Clock.schedule_once(game_screen.children[0].set_focus, 0.1)
 
@@ -313,7 +380,9 @@ class GameOverScreen(Screen):
         # Update the score label when called
         score_label = self.children[0].children[1]  # Assuming the score_label is the second child
         score_label.text = f"Your Score: {self.score}"
-
+    # def switch_to_start_screen(self, instance):
+    #     # Switch back to the Start screen
+    #     self.screen_manager.current = 'start'
 class StartScreen(Screen):
     def __init__(self, screen_manager, **kwargs):
         super(StartScreen, self).__init__(**kwargs)
@@ -325,20 +394,65 @@ class StartScreen(Screen):
             text="Start Game",
             font_size=36,
             color=(0, 1, 0, 1),
-            size_hint=(1, 0.5),  # Adjust the size_hint as needed
+            size_hint=(1, 0.4),
         )
         start_button.bind(on_press=self.start_game)
+
+        # Add a button to view high score
+        high_score_button = Button(
+            text="High Score",
+            font_size=24,
+            size_hint=(1, 0.2),
+        )
+        high_score_button.bind(on_press=self.view_high_score)
+
+        volume_up_button = Button(
+            text="Volume Up",
+            font_size=24,
+            size_hint=(1, 0.2),
+        )
+        volume_up_button.bind(on_press=self.volume_up)
+
+        volume_down_button = Button(
+            text="Volume Down",
+            font_size=24,
+            size_hint=(1, 0.2),
+        )
+        volume_down_button.bind(on_press=self.volume_down)
 
         # Create layout for the Start screen
         layout = BoxLayout(orientation='vertical')
         layout.add_widget(start_label)
         layout.add_widget(start_button)
+        layout.add_widget(high_score_button)
+        layout.add_widget(volume_up_button)
+        layout.add_widget(volume_down_button)
 
         self.add_widget(layout)
+
+    def view_high_score(self, instance):
+        # Switch to the High Score screen
+        self.screen_manager.current = 'high_score'
+
+    def volume_up(self, instance):
+        # Increase the volume
+        game_screen = self.screen_manager.get_screen('game').children[0]
+        if hasattr(game_screen, 'sound') and game_screen.sound:
+            game_screen.sound.volume = min(1, game_screen.sound.volume + 0.1)
+    def switch_to_start_screen(self, instance):
+        self.screen_manager.current = 'start'
+    def volume_down(self, instance):
+        # Decrease the volume
+        game_screen = self.screen_manager.get_screen('game').children[0]
+        if hasattr(game_screen, 'sound') and game_screen.sound:
+            game_screen.sound.volume = max(0, game_screen.sound.volume - 0.1)
 
     def start_game(self, instance):
         # Start the game by switching to the game screen
         self.screen_manager.current = 'game'
+
+
+            
 class TypingAttackApp(App):
     def build(self):
         # Create ScreenManager
@@ -347,7 +461,7 @@ class TypingAttackApp(App):
         # Create and add Start Screen to ScreenManager
         start_screen = StartScreen(screen_manager, name='start')
         screen_manager.add_widget(start_screen)
-
+        
         # Create and add Game Screen to ScreenManager
         game_screen = Screen(name='game')
         game_screen.add_widget(TypingAttackGame(screen_manager))
@@ -356,25 +470,44 @@ class TypingAttackApp(App):
         # Create and add Game Over Screen to ScreenManager
         game_over_screen = GameOverScreen(screen_manager, name='game_over')
         screen_manager.add_widget(game_over_screen)
+        high_score_screen = HighScoreScreen(screen_manager, high_score=0, name='high_score')
+        screen_manager.add_widget(high_score_screen)
 
         # Set the current screen to 'start'
         screen_manager.current = 'start'
 
         # Set Window to fullscreen
         Window.fullscreen = 'auto'
-
+        
         return screen_manager
-    
-class SoundTestApp(App):
-    def build(self):
-        self.sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\Renser - Arcade Coins.mp3")
 
 
-        button = Button(text="Play Sound", on_press=self.play_sound)
-        return button
+class HighScoreScreen(Screen):
+    def __init__(self, screen_manager, high_score, **kwargs):
+        super(HighScoreScreen, self).__init__(**kwargs)
+        self.screen_manager = screen_manager
+        self.high_score = high_score
 
-    def play_sound(self, instance):
-        if self.sound:
-            self.sound.play()
+        # Create widgets for the High Score screen
+        high_score_label = Label(text=f"High Score: {self.high_score}", font_size=36)
+
+        # Add a button to go back
+        back_button = Button(
+            text="Back",
+            font_size=24,
+            size_hint=(1, 0.5),
+        )
+        back_button.bind(on_press=self.go_back)
+
+        # Create layout for the High Score screen
+        layout = BoxLayout(orientation='vertical')
+        layout.add_widget(high_score_label)
+        layout.add_widget(back_button)
+
+        self.add_widget(layout)
+
+    def go_back(self, instance):
+        # Switch back to the Start screen
+        self.screen_manager.current = 'start'
 if __name__ == '__main__':
     TypingAttackApp().run()

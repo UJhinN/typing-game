@@ -7,6 +7,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.uix.button import Button
+from kivy.core.audio import SoundLoader
 import random
 from kivy.clock import mainthread
 
@@ -25,12 +26,18 @@ class TypingAttackGame(BoxLayout):
         # Initialize variables
         self.score = 0
         self.enemies = []
-        
-        
+
         # Create widgets
         self.score_label = Label(text=f"Score: {self.score}", font_size=36)
-        
         self.game_area = Widget()
+        self.sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\sound2.mp3") 
+        self.sound.volume = 0.03
+        self.sound.play()
+
+        if not self.sound:
+            print("Error loading sound files.")
+        
+        
 
         # Add TextInput for typing
         self.text_input = TextInput(
@@ -59,26 +66,50 @@ class TypingAttackGame(BoxLayout):
         self.word_list = self.load_words_from_file("words.txt")
 
         # Schedule enemy spawning
-        Clock.schedule_interval(self.spawn_enemy, 2.2)
+        Clock.schedule_interval(self.spawn_enemy, 2)
 
         # Keyboard bindings
         self.keys_pressed = set()
         self.bind(on_key_down=self.on_key_down, on_key_up=self.on_key_up)
 
         # Game loop
-        Clock.schedule_interval(self.update, 1.0 / 60.0)
+        Clock.schedule_interval(self.update, 1.0 / 80.0)
 
         # Add timer label and start the countdown
-        self.timer_label = Label(text="Time: 300", font_size=24)
+        self.timer_label = Label(text="Time: 180", font_size=24)
         self.add_widget(self.timer_label)
-        self.remaining_time = 300
+        self.remaining_time = 180
         Clock.schedule_interval(self.update_timer, 1.0)
+
+    def on_text_validate(self, instance):
+        typed_word = instance.text
+        word_matched = False
+
+        for enemy in self.enemies:
+            if typed_word == enemy.text:
+                # Play correct sound
+                if self.correct_sound:
+                    self.correct_sound.play()
+                word_matched = True
+                break    
+
+        if not word_matched:
+            # Play incorrect sound
+            if self.incorrect_sound:
+                self.incorrect_sound.play()
+
+        # Additional sound for testing
+        if self.additional_sound:
+            self.additional_sound.play()
+
+        # Rest of your existing code...
+
     def restart_game(self, instance):
         # Reset the game state
         self.score = 0
         self.score_label.text = f"Score: {self.score}"
         
-        self.remaining_time = 300
+        self.remaining_time = 180
         self.timer_label.text = f"Time: {self.remaining_time}"
 
         # Clear existing enemies and spawn new ones
@@ -89,13 +120,15 @@ class TypingAttackGame(BoxLayout):
 
         # Reset the text input
         self.text_input.text = ""
-
+        if self.sound:
+            self.sound.play()
         # Set focus to the text input after a short delay
         Clock.schedule_once(self.set_focus, 0.1)
 
     def reset_enemy_speed(self):
         global ENEMY_SPEED
         ENEMY_SPEED = 0.5
+
     @mainthread
     def set_focus(self, dt):
         self.text_input.focus = True
@@ -167,7 +200,7 @@ class TypingAttackGame(BoxLayout):
                 self.handle_missed_word(enemy)
 
         # Check if the total score is a multiple of 40 to increase speed
-        if self.score % 60 == 0 and self.score > 0:
+        if self.score % 40 == 0 and self.score > 0:
             self.increase_enemy_speed()
 
     def increase_enemy_speed(self):
@@ -198,7 +231,7 @@ class TypingAttackGame(BoxLayout):
     def update_timer(self, dt):
         # Update the countdown timer
         self.remaining_time -= 1
-        self.timer_label.text = f"Time: {self.remaining_time}"
+        self.timer_label.text = f"Time: {max(0, self.remaining_time)}"  # Ensure the timer label doesn't show negative values
 
         # Check if time is up
         if self.remaining_time <= 0:
@@ -207,6 +240,9 @@ class TypingAttackGame(BoxLayout):
     def end_game(self):
         # Game Over logic
         print("Game Over!")
+
+        # Stop the clock interval for updating the timer
+        Clock.unschedule(self.update_timer)
 
         # Switch to the 'game_over' screen and pass the score
         game_over_screen = self.screen_manager.get_screen('game_over')
@@ -249,7 +285,7 @@ class GameOverScreen(Screen):
 
         # Reset the remaining time to its initial value
         game_screen = self.screen_manager.get_screen('game')
-        game_screen.children[0].remaining_time = 300
+        game_screen.children[0].remaining_time = 180
 
         # Reset the score to 0
         game_screen.children[0].score = 0
@@ -262,7 +298,10 @@ class GameOverScreen(Screen):
 
         # Reset the text input
         game_screen.children[0].text_input.text = ""
-
+        self.sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\sound2.mp3") 
+        self.sound.volume = 0.03
+        if self.sound:
+            self.sound.play()
         # Set focus to the text input after a short delay
         Clock.schedule_once(game_screen.children[0].set_focus, 0.1)
 
@@ -317,7 +356,7 @@ class TypingAttackApp(App):
         # Create and add Start Screen to ScreenManager
         start_screen = StartScreen(screen_manager, name='start')
         screen_manager.add_widget(start_screen)
-
+        
         # Create and add Game Screen to ScreenManager
         game_screen = Screen(name='game')
         game_screen.add_widget(TypingAttackGame(screen_manager))
@@ -334,7 +373,6 @@ class TypingAttackApp(App):
         Window.fullscreen = 'auto'
 
         return screen_manager
-    
 
 if __name__ == '__main__':
     TypingAttackApp().run()

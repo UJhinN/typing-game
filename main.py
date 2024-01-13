@@ -38,6 +38,10 @@ class TypingAttackGame(BoxLayout):
             font_size=30,
             background_color=(1, 1, 1, 1)
         )
+        restart_button = Button(text="Restart", font_size=24, size_hint=(1, 0.0943))
+        restart_button.bind(on_press=self.restart_game)
+        self.add_widget(restart_button)
+
         self.text_input.bind(on_text_validate=self.on_text_validate)
 
         # Set the size of the TextInput box to be resizable
@@ -67,7 +71,24 @@ class TypingAttackGame(BoxLayout):
         self.add_widget(self.timer_label)
         self.remaining_time = 300
         Clock.schedule_interval(self.update_timer, 1.0)
+    def restart_game(self, instance):
+        # Reset the game state
+        self.score = 0
+        self.score_label.text = f"Score: {self.score}"
 
+        self.remaining_time = 300
+        self.timer_label.text = f"Time: {self.remaining_time}"
+
+        # Clear existing enemies and spawn new ones
+        self.enemies = []
+        self.game_area.clear_widgets()
+        self.spawn_enemy(0)  # Spawn initial enemies
+
+        # Reset the text input
+        self.text_input.text = ""
+
+        # Set focus to the text input after a short delay
+        Clock.schedule_once(self.set_focus, 0.1)
     @mainthread
     def set_focus(self, dt):
         self.text_input.focus = True
@@ -207,8 +228,30 @@ class GameOverScreen(Screen):
         self.add_widget(layout)
 
     def restart_game(self, instance):
-        # Restart the game by switching to the game screen
+        # Reset the game by switching to the game screen
         self.screen_manager.current = 'game'
+
+        # Reset the remaining time to its initial value
+        game_screen = self.screen_manager.get_screen('game')
+        game_screen.children[0].remaining_time = 300
+
+        # Reset the score to 0
+        game_screen.children[0].score = 0
+        game_screen.children[0].score_label.text = f"Score: {game_screen.children[0].score}"
+
+        # Clear existing enemies and spawn new ones
+        game_screen.children[0].enemies = []
+        game_screen.children[0].game_area.clear_widgets()
+        game_screen.children[0].spawn_enemy(0)  # Spawn initial enemies
+
+        # Reset the text input
+        game_screen.children[0].text_input.text = ""
+
+        # Set focus to the text input after a short delay
+        Clock.schedule_once(game_screen.children[0].set_focus, 0.1)
+
+        # Update the timer label in the game screen
+        game_screen.children[0].timer_label.text = f"Time: {game_screen.children[0].remaining_time}"
 
 
     def end_game(self):

@@ -57,7 +57,7 @@ class TypingAttackGame(BoxLayout):
         self.word_list = self.load_words_from_file("words.txt")
 
         # Schedule enemy spawning
-        Clock.schedule_interval(self.spawn_enemy, 3.5)
+        Clock.schedule_interval(self.spawn_enemy, 2.2)
 
         # Keyboard bindings
         self.keys_pressed = set()
@@ -75,7 +75,7 @@ class TypingAttackGame(BoxLayout):
         # Reset the game state
         self.score = 0
         self.score_label.text = f"Score: {self.score}"
-
+        
         self.remaining_time = 300
         self.timer_label.text = f"Time: {self.remaining_time}"
 
@@ -83,12 +83,17 @@ class TypingAttackGame(BoxLayout):
         self.enemies = []
         self.game_area.clear_widgets()
         self.spawn_enemy(0)  # Spawn initial enemies
+        self.reset_enemy_speed()  # Reset enemy speed
 
         # Reset the text input
         self.text_input.text = ""
 
         # Set focus to the text input after a short delay
         Clock.schedule_once(self.set_focus, 0.1)
+
+    def reset_enemy_speed(self):
+        global ENEMY_SPEED
+        ENEMY_SPEED = 0.5
     @mainthread
     def set_focus(self, dt):
         self.text_input.focus = True
@@ -155,9 +160,18 @@ class TypingAttackGame(BoxLayout):
         for enemy in self.enemies:
             enemy.y -= ENEMY_SPEED
 
-            # Check for collision with bottom of the window
+            # Check for collision with the bottom of the window
             if enemy.y < 0:
                 self.handle_missed_word(enemy)
+
+        # Check if the total score is a multiple of 40 to increase speed
+        if self.score % 60 == 0 and self.score > 0:
+            self.increase_enemy_speed()
+
+    def increase_enemy_speed(self):
+        global ENEMY_SPEED
+        # Adjust the ENEMY_SPEED value to increase the falling speed
+        ENEMY_SPEED += 0.001
 
     def handle_missed_word(self, enemy):
         # Remove the missed word from the game area and the list of enemies
@@ -213,7 +227,7 @@ class GameOverScreen(Screen):
         score_label = Label(text=f"Your Score: {self.score}", font_size=36)
 
         restart_button = Button(
-            text="Restart",
+            text="Newgame",
             font_size=24,
             size_hint=(1, 0.5),
         )
@@ -252,8 +266,8 @@ class GameOverScreen(Screen):
 
         # Update the timer label in the game screen
         game_screen.children[0].timer_label.text = f"Time: {game_screen.children[0].remaining_time}"
-
-
+    
+        game_screen.children[0].reset_enemy_speed()
     def end_game(self):
     # Game Over logic
         print("Game Over!")

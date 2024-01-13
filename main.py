@@ -11,7 +11,7 @@ import random
 from kivy.clock import mainthread
 
 # Set window size
-Window.size = (1000, 800)
+Window.size = (2000, 1000)
 
 # Constants
 ENEMY_SPEED = 0.5
@@ -19,11 +19,9 @@ CORRECT_COLOR = (0, 1, 0, 1)  # Green color for correct words
 WRONG_COLOR = (1, 0, 0, 1)    # Red color for wrong words
 
 class TypingAttackGame(BoxLayout):
-    def __init__(self, screen_manager, **kwargs):
+    def __init__(self, screen_manager=None, **kwargs):
         super(TypingAttackGame, self).__init__(**kwargs)
-        self.orientation = 'vertical'
         self.screen_manager = screen_manager
-
         # Initialize variables
         self.score = 0
         self.enemies = []
@@ -35,7 +33,7 @@ class TypingAttackGame(BoxLayout):
         # Add TextInput for typing
         self.text_input = TextInput(
             multiline=False, 
-            size_hint=(1, None),  # Set height to None
+            size_hint=(10, 1),  # Set height to None
             height=100,  # Set a specific height as needed
             font_size=30,
             background_color=(1, 1, 1, 1)
@@ -65,9 +63,9 @@ class TypingAttackGame(BoxLayout):
         Clock.schedule_interval(self.update, 1.0 / 60.0)
 
         # Add timer label and start the countdown
-        self.timer_label = Label(text="Time: 60", font_size=24)
+        self.timer_label = Label(text="Time: 300", font_size=24)
         self.add_widget(self.timer_label)
-        self.remaining_time = 10
+        self.remaining_time = 300
         Clock.schedule_interval(self.update_timer, 1.0)
 
     @mainthread
@@ -172,9 +170,12 @@ class TypingAttackGame(BoxLayout):
     def end_game(self):
         # Game Over logic
         print("Game Over!")
-        self.screen_manager.current = 'game_over'  # สลับไปยังหน้าจอ 'game_over'
-        # You can perform other actions here as needed
 
+        # Switch to the 'game_over' screen and pass the score
+        game_over_screen = self.screen_manager.get_screen('game_over')
+        game_over_screen.score = self.score
+        game_over_screen.update_score_label()  # Update the score label
+        self.screen_manager.current = 'game_over'
     def on_touch_move(self, touch):
         # Move player with touch input
         if touch.y < self.game_area.height / 2:
@@ -184,34 +185,45 @@ class GameOverScreen(Screen):
     def __init__(self, screen_manager, **kwargs):
         super(GameOverScreen, self).__init__(**kwargs)
         self.screen_manager = screen_manager
+        self.score = 0  # Initialize score to 0
 
         # Create widgets for the Game Over screen
         game_over_label = Label(text="Game Over", font_size=48)
-        replay_button = Button(
-            text="Newgame",
-            font_size=36,
-            color=(0, 1, 0, 1),
-            size_hint=(1, 0.2),
+        score_label = Label(text=f"Your Score: {self.score}", font_size=36)
+
+        restart_button = Button(
+            text="Restart",
+            font_size=24,
+            size_hint=(1, 0.5),
         )
-        replay_button.bind(on_press=self.newgame)
+        restart_button.bind(on_press=self.restart_game)
 
         # Create layout for the Game Over screen
         layout = BoxLayout(orientation='vertical')
         layout.add_widget(game_over_label)
-        layout.add_widget(replay_button)
+        layout.add_widget(score_label)
+        layout.add_widget(restart_button)
 
         self.add_widget(layout)
 
-    def newgame(self, instance):
-        # Switch to the 'start' screen
-        self.screen_manager.current = 'start'
+    def restart_game(self, instance):
+        # Restart the game by switching to the game screen
+        self.screen_manager.current = 'game'
 
-        # Reset the input text in the 'start' screen
-        start_screen = self.screen_manager.get_screen('start')
-        start_screen.text_input.text = ""
 
-        # Set focus on the text input of the 'start' screen
-        Clock.schedule_once(start_screen.set_focus, 0.1)
+    def end_game(self):
+    # Game Over logic
+        print("Game Over!")
+
+    # Switch to the 'game_over' screen and pass the score
+        game_over_screen = self.screen_manager.get_screen('game_over')
+        game_over_screen.score = self.score
+        self.screen_manager.current = 'game_over'
+    # You can perform other actions here as needed
+    def update_score_label(self):
+        # Update the score label when called
+        score_label = self.children[0].children[1]  # Assuming the score_label is the second child
+        score_label.text = f"Your Score: {self.score}"
 
 class StartScreen(Screen):
     def __init__(self, screen_manager, **kwargs):
@@ -238,7 +250,6 @@ class StartScreen(Screen):
     def start_game(self, instance):
         # Start the game by switching to the game screen
         self.screen_manager.current = 'game'
-
 class TypingAttackApp(App):
     def build(self):
         # Create ScreenManager
@@ -259,6 +270,9 @@ class TypingAttackApp(App):
 
         # Set the current screen to 'start'
         screen_manager.current = 'start'
+
+        # Set Window to fullscreen
+        Window.fullscreen = 'auto'
 
         return screen_manager
 

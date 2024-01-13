@@ -6,6 +6,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 from kivy.clock import Clock
+from kivy.uix.button import Button
 import random
 from kivy.clock import mainthread
 
@@ -66,7 +67,7 @@ class TypingAttackGame(BoxLayout):
         # Add timer label and start the countdown
         self.timer_label = Label(text="Time: 60", font_size=24)
         self.add_widget(self.timer_label)
-        self.remaining_time = 60
+        self.remaining_time = 10
         Clock.schedule_interval(self.update_timer, 1.0)
 
     @mainthread
@@ -186,8 +187,13 @@ class GameOverScreen(Screen):
 
         # Create widgets for the Game Over screen
         game_over_label = Label(text="Game Over", font_size=48)
-        replay_button = Label(text="Replay", font_size=36, color=(0, 1, 0, 1))
-        replay_button.bind(on_touch_down=self.replay)
+        replay_button = Button(
+            text="Newgame",
+            font_size=36,
+            color=(0, 1, 0, 1),
+            size_hint=(1, 0.2),
+        )
+        replay_button.bind(on_press=self.newgame)
 
         # Create layout for the Game Over screen
         layout = BoxLayout(orientation='vertical')
@@ -196,16 +202,16 @@ class GameOverScreen(Screen):
 
         self.add_widget(layout)
 
-    def replay(self, instance, touch):
-        # Replay the game by resetting the score and time, and switching back to the game screen
-        game_screen = self.screen_manager.get_screen('game')
-        game_screen.score = 0
-        game_screen.score_label.text = "Score: 0"
-        game_screen.remaining_time = 60
-        game_screen.timer_label.text = "Time: 60"
-        game_screen.text_input.text = ""  # Clear the TextInput
-        self.screen_manager.current = 'start'  # Switch to the 'start' screen
-        Clock.schedule_once(game_screen.set_focus, 0.1)
+    def newgame(self, instance):
+        # Switch to the 'start' screen
+        self.screen_manager.current = 'start'
+
+        # Reset the input text in the 'start' screen
+        start_screen = self.screen_manager.get_screen('start')
+        start_screen.text_input.text = ""
+
+        # Set focus on the text input of the 'start' screen
+        Clock.schedule_once(start_screen.set_focus, 0.1)
 
 class StartScreen(Screen):
     def __init__(self, screen_manager, **kwargs):
@@ -213,9 +219,14 @@ class StartScreen(Screen):
         self.screen_manager = screen_manager
 
         # Create widgets for the Start screen
-        start_label = Label(text="TYPING-GAME", font_size=48)
-        start_button = Label(text="Start Game", font_size=36, color=(0, 1, 0, 1))
-        start_button.bind(on_touch_down=self.start_game)
+        start_label = Label(text="TYPING-ATTACK", font_size=48)
+        start_button = Button(
+            text="Start Game",
+            font_size=36,
+            color=(0, 1, 0, 1),
+            size_hint=(1, 0.5),  # Adjust the size_hint as needed
+        )
+        start_button.bind(on_press=self.start_game)
 
         # Create layout for the Start screen
         layout = BoxLayout(orientation='vertical')
@@ -224,7 +235,7 @@ class StartScreen(Screen):
 
         self.add_widget(layout)
 
-    def start_game(self, instance, touch):
+    def start_game(self, instance):
         # Start the game by switching to the game screen
         self.screen_manager.current = 'game'
 

@@ -7,7 +7,6 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.uix.button import Button
-from kivy.core.audio import SoundLoader
 import random
 from kivy.clock import mainthread
 
@@ -26,17 +25,13 @@ class TypingAttackGame(BoxLayout):
         # Initialize variables
         self.score = 0
         self.enemies = []
-
+        
+        
         # Create widgets
         self.score_label = Label(text=f"Score: {self.score}", font_size=36)
+        
         self.game_area = Widget()
-        self.correct_sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\Renser - Arcade Coins.mp3")  # Replace 'correct_sound.mp3' with your actual sound file
-        self.incorrect_sound = SoundLoader.load('C:\\Users\\AVS_BP\\Downloads\\Renser - Arcade Coins.mp3')  # Replace 'incorrect_sound.mp3' with your actual sound file
-        self.correct_sound.volume = 0.5
-        self.incorrect_sound.volume = 0.5
 
-        if not self.correct_sound or not self.incorrect_sound:
-            print("Error loading sound files.")
         # Add TextInput for typing
         self.text_input = TextInput(
             multiline=False, 
@@ -64,7 +59,7 @@ class TypingAttackGame(BoxLayout):
         self.word_list = self.load_words_from_file("words.txt")
 
         # Schedule enemy spawning
-        Clock.schedule_interval(self.spawn_enemy, 2)
+        Clock.schedule_interval(self.spawn_enemy, 2.2)
 
         # Keyboard bindings
         self.keys_pressed = set()
@@ -78,28 +73,6 @@ class TypingAttackGame(BoxLayout):
         self.add_widget(self.timer_label)
         self.remaining_time = 300
         Clock.schedule_interval(self.update_timer, 1.0)
-    def on_text_validate(self, instance):
-        typed_word = instance.text
-        word_matched = False
-
-        for enemy in self.enemies:
-            if typed_word == enemy.text:
-                # Play correct sound
-                if self.correct_sound:
-                    self.correct_sound.play()
-                word_matched = True
-                break    
-
-        if self.correct_sound:
-            self.correct_sound.unload()
-        if self.incorrect_sound:
-            self.incorrect_sound.unload()
-                # ... (rest of your existing code)
-
-        if not word_matched:
-            # Play incorrect sound
-            if self.incorrect_sound:
-                self.incorrect_sound.play()    
     def restart_game(self, instance):
         # Reset the game state
         self.score = 0
@@ -194,7 +167,7 @@ class TypingAttackGame(BoxLayout):
                 self.handle_missed_word(enemy)
 
         # Check if the total score is a multiple of 40 to increase speed
-        if self.score % 40 == 0 and self.score > 0:
+        if self.score % 60 == 0 and self.score > 0:
             self.increase_enemy_speed()
 
     def increase_enemy_speed(self):
@@ -225,7 +198,7 @@ class TypingAttackGame(BoxLayout):
     def update_timer(self, dt):
         # Update the countdown timer
         self.remaining_time -= 1
-        self.timer_label.text = f"Time: {max(0, self.remaining_time)}"  # Ensure the timer label doesn't show negative values
+        self.timer_label.text = f"Time: {self.remaining_time}"
 
         # Check if time is up
         if self.remaining_time <= 0:
@@ -234,9 +207,6 @@ class TypingAttackGame(BoxLayout):
     def end_game(self):
         # Game Over logic
         print("Game Over!")
-
-        # Stop the clock interval for updating the timer
-        Clock.unschedule(self.update_timer)
 
         # Switch to the 'game_over' screen and pass the score
         game_over_screen = self.screen_manager.get_screen('game_over')
@@ -365,16 +335,6 @@ class TypingAttackApp(App):
 
         return screen_manager
     
-class SoundTestApp(App):
-    def build(self):
-        self.sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\Renser - Arcade Coins.mp3")
 
-
-        button = Button(text="Play Sound", on_press=self.play_sound)
-        return button
-
-    def play_sound(self, instance):
-        if self.sound:
-            self.sound.play()
 if __name__ == '__main__':
     TypingAttackApp().run()

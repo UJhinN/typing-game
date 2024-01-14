@@ -16,7 +16,7 @@ from kivy.uix.popup import Popup
 
 
 # Constants
-ENEMY_SPEED = 0.1
+ENEMY_SPEED = 0.3
 CORRECT_COLOR = (0, 1, 0, 1)  # Green color for correct words
 WRONG_COLOR = (1, 0, 0, 1)    # Red color for wrong words
 
@@ -134,7 +134,7 @@ class TypingAttackGame(BoxLayout):
         content = BoxLayout(orientation='vertical')
         content.add_widget(Label(text="Game Paused", font_size=30))
     
-        resume_button = Button(text="Resume", font_size=24, size_hint=(1, 0.5))
+        resume_button = Button(text="Resume", font_size=24, size_hint=(1, 0.3))
         resume_button.bind(on_press=self.dismiss_pause_popup)
         content.add_widget(resume_button)
 
@@ -165,7 +165,7 @@ class TypingAttackGame(BoxLayout):
             return
     def get_high_score(self):
     # Function to retrieve the high score from storage (e.g., a file)
-        file_path = r"D:\GKV\high_score.txt"
+        file_path = r"D:\\GKV\\high_score.txt"
         try:
             with open(file_path, "r") as file:
                 high_score = int(file.read())
@@ -237,7 +237,7 @@ class TypingAttackGame(BoxLayout):
 
     def reset_enemy_speed(self):
         global ENEMY_SPEED
-        ENEMY_SPEED = 0.5
+        ENEMY_SPEED = 0.3
         if self.paused:
             self.paused = False
             Clock.schedule_interval(self.update, 1.0 / 80.0)
@@ -260,7 +260,7 @@ class TypingAttackGame(BoxLayout):
                 if self.correct_sound:
                     self.correct_sound.volume = 0.3
                     self.correct_sound.play()
-                Clock.schedule_once(self.reset_text_input_color, 0.5)  # Reset color after 0.5 seconds
+                Clock.schedule_once(self.reset_text_input_color, 0.3)  # Reset color after 0.5 seconds
                 word_matched = True  # Set the flag to True
                 Clock.schedule_once(self.set_focus, 0.1)  # Set focus after a short delay
                 break  # Exit the loop since we found a match
@@ -271,7 +271,7 @@ class TypingAttackGame(BoxLayout):
             if self.incorrect_sound:
                 self.correct_sound.volume = 0.3
                 self.incorrect_sound.play()
-            Clock.schedule_once(self.reset_text_input_color, 0.5)  # Reset color after 0.5 seconds
+            Clock.schedule_once(self.reset_text_input_color, 0.3)  # Reset color after 0.5 seconds
             Clock.schedule_once(self.set_focus, 0.1)  # Set focus after a short delay
 
     def reset_text_input_color(self, dt):
@@ -318,13 +318,13 @@ class TypingAttackGame(BoxLayout):
                 self.handle_missed_word(enemy)
 
         # Check if the total score is a multiple of 40 to increase speed
-        if self.score % 40 == 0 and self.score > 0:
+        if self.score % 50 == 0 and self.score > 0:
             self.increase_enemy_speed()
 
     def increase_enemy_speed(self):
         global ENEMY_SPEED
         # Adjust the ENEMY_SPEED value to increase the falling speed
-        ENEMY_SPEED += 0.001
+        ENEMY_SPEED += 0.0005
 
     def handle_missed_word(self, enemy):
         # Remove the missed word from the game area and the list of enemies
@@ -341,7 +341,7 @@ class TypingAttackGame(BoxLayout):
         # Optionally, you can add additional feedback for the player when they miss a word
         # For example, change the color of the score label to indicate a penalty
         self.score_label.color = (1, 0, 0, 1)  # Red color
-        Clock.schedule_once(self.reset_score_label_color, 0.5)  # Reset color after 0.5 seconds
+        Clock.schedule_once(self.reset_score_label_color, 0.3)  # Reset color after 0.5 seconds
 
     def reset_score_label_color(self, dt):
         self.score_label.color = (1, 1, 1, 1)  # Reset color to white
@@ -618,7 +618,7 @@ class HighScoreScreen(Screen):
         self.add_widget(layout)
     def get_high_score(self):
     # Function to retrieve the high score from storage (e.g., a file)
-        file_path = r"D:\GKV\high_score.txt"
+        file_path = r"D:\\GKV\\high_score.txt"
         try:
             with open(file_path, "r") as file:
                 high_score = int(file.read())

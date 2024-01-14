@@ -12,11 +12,11 @@ from kivy.base import stopTouchApp
 import random
 from kivy.clock import mainthread
 from kivy.graphics import Color, Rectangle
-# Set window size
-Window.size = (2000, 1000)
+from kivy.uix.popup import Popup
+
 
 # Constants
-ENEMY_SPEED = 0.5
+ENEMY_SPEED = 0.1
 CORRECT_COLOR = (0, 1, 0, 1)  # Green color for correct words
 WRONG_COLOR = (1, 0, 0, 1)    # Red color for wrong words
 
@@ -24,12 +24,20 @@ class TypingAttackGame(BoxLayout):
     def __init__(self, screen_manager=None, **kwargs):
         super(TypingAttackGame, self).__init__(**kwargs)
         self.screen_manager = screen_manager
+        self.paused = False 
+        Clock.schedule_interval(self.update, 1.0 / 80.0)
+        
         # Initialize variables
         self.score = 0
         self.enemies = []
 
         # Create widgets
-        
+        # Load sound effects
+        self.correct_sound = SoundLoader.load("D:\GKV\sound\hit.mp3")
+        self.incorrect_sound = SoundLoader.load("D:\GKV\sound\miss.mp3")
+
+        if not self.correct_sound or not self.incorrect_sound:
+            print("Error loading sound files.")
         self.game_area = Widget()
         self.sound = SoundLoader.load("D:\GKV\sound\sound6.mp3") 
         self.sound.volume = 0.03
@@ -37,12 +45,21 @@ class TypingAttackGame(BoxLayout):
         
         if not self.sound:
             print("Error loading sound files.")
-        
+            
+        pause_button = Button(text="Pause", font_size=24, size_hint=(1, 0.0943))
+        pause_button.bind(on_press=self.show_pause_popup)
+        self.add_widget(pause_button)
+
+
         self.score_label = Label(text=f"Score: {self.score}", font_size=36, size_hint=(1.2, 1.95))
         self.remaining_time = 180
+
+
         exit_button = Button(text="Exit", font_size=24, size_hint=(1, 0.095))
         exit_button.bind(on_press=self.exit_game)
         self.add_widget(exit_button)
+
+
         # Add TextInput for typing
         self.text_input = TextInput(
             multiline=False, 
@@ -66,7 +83,7 @@ class TypingAttackGame(BoxLayout):
         # Add widgets to layout
         self.add_widget(self.score_label)
         self.add_widget(self.game_area)
-
+        
         # Load words from file
         self.word_list = self.load_words_from_file("words.txt")
 
@@ -85,10 +102,14 @@ class TypingAttackGame(BoxLayout):
         self.add_widget(self.timer_label)
         
         Clock.schedule_interval(self.update_timer, 1.0)
+
+
     def exit_game(self, instance):
         # Exit full screen and close the application
         Window.fullscreen = False
         stopTouchApp()
+
+
     def show_high_score_screen(self):
         # Switch to the High Score screen and pass the high score
         high_score_screen = self.screen_manager.get_screen('high_score')
@@ -104,9 +125,44 @@ class TypingAttackGame(BoxLayout):
         game_over_screen.update_score_label()  # Update the score label
         self.screen_manager.current = 'game_over'
 
-        # Play additional sound (if available)
-        if self.additional_sound:
-            self.additional_sound.play()
+    def show_pause_popup(self, instance):
+    # Pause the game and show a popup
+        self.paused = True
+        Clock.unschedule(self.update)
+
+        # Create a popup
+        content = BoxLayout(orientation='vertical')
+        content.add_widget(Label(text="Game Paused", font_size=30))
+    
+        resume_button = Button(text="Resume", font_size=24, size_hint=(1, 0.5))
+        resume_button.bind(on_press=self.dismiss_pause_popup)
+        content.add_widget(resume_button)
+
+        self.pause_popup = Popup(title="Pause", content=content, size_hint=(None, None), size=(400, 200))
+        self.pause_popup.open()
+
+    def dismiss_pause_popup(self, instance):
+    # Dismiss the popup and resume the game
+        self.paused = False
+        Clock.schedule_interval(self.update, 1.0 / 80.0)
+
+    # Dismiss the popup
+        self.pause_popup.dismiss()
+
+    def pause_game(self, instance):
+        # Pause or resume the game when the Pause button is pressed
+        if self.paused:
+            # Resume the game
+            self.paused = False
+            Clock.schedule_interval(self.update, 1.0 / 80.0)
+        else:
+            # Pause the game
+            self.paused = True
+            Clock.unschedule(self.update)
+
+    def update(self, dt):
+        if self.paused:
+            return
     def get_high_score(self):
     # Function to retrieve the high score from storage (e.g., a file)
         file_path = r"D:\GKV\high_score.txt"
@@ -131,7 +187,7 @@ class TypingAttackGame(BoxLayout):
                 if self.correct_sound:
                     self.correct_sound.play()
                 word_matched = True
-                break    
+                # ... (other code)
 
         if not word_matched:
             # Play incorrect sound
@@ -182,7 +238,9 @@ class TypingAttackGame(BoxLayout):
     def reset_enemy_speed(self):
         global ENEMY_SPEED
         ENEMY_SPEED = 0.5
-
+        if self.paused:
+            self.paused = False
+            Clock.schedule_interval(self.update, 1.0 / 80.0)
     @mainthread
     def set_focus(self, dt):
         self.text_input.focus = True
@@ -199,6 +257,9 @@ class TypingAttackGame(BoxLayout):
                 self.enemies.remove(enemy)
                 instance.text = ""  # Clear the TextInput after successful typing
                 self.text_input.background_color = CORRECT_COLOR  # Set background color to green
+                if self.correct_sound:
+                    self.correct_sound.volume = 0.3
+                    self.correct_sound.play()
                 Clock.schedule_once(self.reset_text_input_color, 0.5)  # Reset color after 0.5 seconds
                 word_matched = True  # Set the flag to True
                 Clock.schedule_once(self.set_focus, 0.1)  # Set focus after a short delay
@@ -206,7 +267,10 @@ class TypingAttackGame(BoxLayout):
 
         if not word_matched:
             instance.text = ""  # Clear the TextInput after Enter is pressed
-            self.text_input.background_color = WRONG_COLOR  # Set background color to red
+            self.text_input.background_color = WRONG_COLOR # Set background color to red
+            if self.incorrect_sound:
+                self.correct_sound.volume = 0.3
+                self.incorrect_sound.play()
             Clock.schedule_once(self.reset_text_input_color, 0.5)  # Reset color after 0.5 seconds
             Clock.schedule_once(self.set_focus, 0.1)  # Set focus after a short delay
 

@@ -78,7 +78,7 @@ class TypingAttackGame(BoxLayout):
         # Add timer label and start the countdown
         self.timer_label = Label(text="Time: 180", font_size=24)
         self.add_widget(self.timer_label)
-        self.remaining_time = 5
+        self.remaining_time = 180
         Clock.schedule_interval(self.update_timer, 1.0)
 
     def on_text_validate(self, instance):
@@ -304,14 +304,6 @@ class GameOverScreen(Screen):
         game_over_label = Label(text="Game Over", font_size=48)
         score_label = Label(text=f"Your Score: {self.score}", font_size=36)
 
-        # Add a button to view high score
-        # high_score_button = Button(
-        #     text="High Score",
-        #     font_size=24,
-        #     size_hint=(1, 0.5),
-        # )
-        # high_score_button.bind(on_press=self.view_high_score)
-
         restart_button = Button(
             text="New Game",
             font_size=24,
@@ -323,14 +315,10 @@ class GameOverScreen(Screen):
         layout = BoxLayout(orientation='vertical')
         layout.add_widget(game_over_label)
         layout.add_widget(score_label)
-        # layout.add_widget(high_score_button)
         layout.add_widget(restart_button)
 
         self.add_widget(layout)
 
-    # def view_high_score(self, instance):
-    #     # Switch to the High Score screen
-    #     self.screen_manager.current = 'high_score'
 
     def restart_game(self, instance):
         # Reset the game by switching to the game screen

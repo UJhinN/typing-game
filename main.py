@@ -8,9 +8,10 @@ from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.core.audio import SoundLoader
+from kivy.base import stopTouchApp
 import random
 from kivy.clock import mainthread
-
+from kivy.graphics import Color, Rectangle
 # Set window size
 Window.size = (2000, 1000)
 
@@ -28,25 +29,29 @@ class TypingAttackGame(BoxLayout):
         self.enemies = []
 
         # Create widgets
-        self.score_label = Label(text=f"Score: {self.score}", font_size=36)
+        
         self.game_area = Widget()
-        self.sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\sound6.mp3") 
+        self.sound = SoundLoader.load("D:\GKV\sound\sound6.mp3") 
         self.sound.volume = 0.03
         self.sound.play()
-
+        
         if not self.sound:
             print("Error loading sound files.")
         
-        
-
+        self.score_label = Label(text=f"Score: {self.score}", font_size=36, size_hint=(1.2, 1.95))
+        self.remaining_time = 180
+        exit_button = Button(text="Exit", font_size=24, size_hint=(1, 0.095))
+        exit_button.bind(on_press=self.exit_game)
+        self.add_widget(exit_button)
         # Add TextInput for typing
         self.text_input = TextInput(
             multiline=False, 
-            size_hint=(10, 1),  # Set height to None
+            size_hint=(12, 1),  # Set height to None
             height=100,  # Set a specific height as needed
             font_size=30,
             background_color=(1, 1, 1, 1)
         )
+        
         restart_button = Button(text="Restart", font_size=24, size_hint=(1, 0.0943))
         restart_button.bind(on_press=self.restart_game)
         self.add_widget(restart_button)
@@ -76,10 +81,14 @@ class TypingAttackGame(BoxLayout):
         Clock.schedule_interval(self.update, 1.0 / 80.0)
 
         # Add timer label and start the countdown
-        self.timer_label = Label(text="Time: 180", font_size=24)
+        self.timer_label = Label(text="Time: 180", font_size=30, size_hint=(1.2, 1.95))
         self.add_widget(self.timer_label)
-        self.remaining_time = 180
+        
         Clock.schedule_interval(self.update_timer, 1.0)
+    def exit_game(self, instance):
+        # Exit full screen and close the application
+        Window.fullscreen = False
+        stopTouchApp()
     def show_high_score_screen(self):
         # Switch to the High Score screen and pass the high score
         high_score_screen = self.screen_manager.get_screen('high_score')
@@ -98,6 +107,20 @@ class TypingAttackGame(BoxLayout):
         # Play additional sound (if available)
         if self.additional_sound:
             self.additional_sound.play()
+    def get_high_score(self):
+    # Function to retrieve the high score from storage (e.g., a file)
+        file_path = r"D:\GKV\high_score.txt"
+        try:
+            with open(file_path, "r") as file:
+                high_score = int(file.read())
+                return high_score
+        except FileNotFoundError:
+            print(f"High score file not found at {file_path}. Returning default high score (0).")
+            return 0
+        except Exception as e:
+            print(f"An error occurred while reading the high score file: {e}")
+            return 0
+            
     def on_text_validate(self, instance):
         typed_word = instance.text
         word_matched = False
@@ -281,7 +304,7 @@ class TypingAttackGame(BoxLayout):
     def get_high_score(self):
         # Function to retrieve the high score from storage (e.g., a file)
         try:
-            with open("high_score.txt", "r") as file:
+            with open("D:\\GKV\\high_score.txt", "r") as file:
                 high_score = int(file.read())
                 return high_score
         except FileNotFoundError:
@@ -289,7 +312,7 @@ class TypingAttackGame(BoxLayout):
 
     def set_high_score(self, score):
         # Function to set the high score in storage (e.g., a file)
-        with open("high_score.txt", "w") as file:
+        with open("D:\\GKV\\high_score.txt", "w") as file:
             file.write(str(score))
 
     def show_high_score_screen(self):
@@ -356,7 +379,7 @@ class GameOverScreen(Screen):
 
         # Reset the text input
         game_screen.children[0].text_input.text = ""
-        self.sound = SoundLoader.load("C:\\Users\\AVS_BP\\Downloads\\sound6.mp3") 
+        self.sound = SoundLoader.load("D:\GKV\sound\sound6.mp3") 
         self.sound.volume = 0.03
         if self.sound:
             self.sound.play()
@@ -383,17 +406,38 @@ class GameOverScreen(Screen):
     # def switch_to_start_screen(self, instance):
     #     # Switch back to the Start screen
     #     self.screen_manager.current = 'start'
+
+class BorderedLabel(BoxLayout):
+    def __init__(self, text='', font_size=24, **kwargs):
+        super(BorderedLabel, self).__init__(**kwargs)
+
+        with self.canvas.before:
+            Color(0.5, 0.5, 0.5, 1)  # Set the border color (gray in this example)
+            self.border = Rectangle(pos=self.pos, size=self.size)
+
+        self.label = Label(
+            text=text,
+            font_size=font_size,
+            size_hint=(1, 1),
+            color=(9, 0, 9, 9)  # Set the text color to white (1, 1, 1, 1)
+        )
+        self.add_widget(self.label)
+        self.bind(pos=self.update_rect, size=self.update_rect)
+
+    def update_rect(self, *args):
+        self.border.pos = self.pos
+        self.border.size = self.size
 class StartScreen(Screen):
     def __init__(self, screen_manager, **kwargs):
         super(StartScreen, self).__init__(**kwargs)
         self.screen_manager = screen_manager
 
         # Create widgets for the Start screen
-        start_label = Label(text="TYPING-ATTACK", font_size=48)
+        start_label = BorderedLabel(text="TYPING-ATTACK", font_size=70, size_hint=(1, 2))
         start_button = Button(
             text="Start Game",
             font_size=36,
-            color=(0, 1, 0, 1),
+            color=(0, 0, 9, 1),
             size_hint=(1, 0.4),
         )
         start_button.bind(on_press=self.start_game)
@@ -402,6 +446,7 @@ class StartScreen(Screen):
         high_score_button = Button(
             text="High Score",
             font_size=24,
+            color=(0, 6, 6, 1),
             size_hint=(1, 0.2),
         )
         high_score_button.bind(on_press=self.view_high_score)
@@ -409,6 +454,7 @@ class StartScreen(Screen):
         volume_up_button = Button(
             text="Volume Up",
             font_size=24,
+            color=(6, 0, 0, 1),
             size_hint=(1, 0.2),
         )
         volume_up_button.bind(on_press=self.volume_up)
@@ -416,6 +462,7 @@ class StartScreen(Screen):
         volume_down_button = Button(
             text="Volume Down",
             font_size=24,
+            color=(0, 1, 0, 1),
             size_hint=(1, 0.2),
         )
         volume_down_button.bind(on_press=self.volume_down)
@@ -429,7 +476,7 @@ class StartScreen(Screen):
         layout.add_widget(volume_down_button)
 
         self.add_widget(layout)
-
+        
     def view_high_score(self, instance):
         # Switch to the High Score screen
         self.screen_manager.current = 'high_score'
@@ -449,10 +496,10 @@ class StartScreen(Screen):
 
     def start_game(self, instance):
         # Start the game by switching to the game screen
-        self.screen_manager.current = 'game'
+        # Check if the instance pressed is the "Start Game" button
+        if instance.text == "Start Game":
+            self.screen_manager.current = 'game'
 
-
-            
 class TypingAttackApp(App):
     def build(self):
         # Create ScreenManager
@@ -481,7 +528,7 @@ class TypingAttackApp(App):
         
         return screen_manager
 
-
+    
 class HighScoreScreen(Screen):
     def __init__(self, screen_manager, high_score, **kwargs):
         super(HighScoreScreen, self).__init__(**kwargs)
@@ -503,11 +550,27 @@ class HighScoreScreen(Screen):
         layout = BoxLayout(orientation='vertical')
         layout.add_widget(high_score_label)
         layout.add_widget(back_button)
-
+    
         self.add_widget(layout)
+    def get_high_score(self):
+    # Function to retrieve the high score from storage (e.g., a file)
+        file_path = r"D:\GKV\high_score.txt"
+        try:
+            with open(file_path, "r") as file:
+                high_score = int(file.read())
+                return high_score
+        except FileNotFoundError:
+            print(f"High score file not found at {file_path}. Returning default high score (0).")
+            return 0
+        except Exception as e:
+            print(f"An error occurred while reading the high score file: {e}")
+            return 0
+        
 
     def go_back(self, instance):
         # Switch back to the Start screen
         self.screen_manager.current = 'start'
+    
+        
 if __name__ == '__main__':
     TypingAttackApp().run()
